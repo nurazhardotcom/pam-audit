@@ -2,6 +2,8 @@
 
 > **Status:** Active — maintained. Synthetic fixtures only, no real estates. See [AI_DISCLOSURE.md](AI_DISCLOSURE.md).
 
+> **Portfolio lab — not a production CyberArk integration.** Mock SCIM/OAuth2 API only; no CyberArk affiliation, no customer data.
+
 [![CI](https://github.com/nurazhardotcom/pam-audit-clj/actions/workflows/ci.yml/badge.svg)](https://github.com/nurazhardotcom/pam-audit-clj/actions)
 
 > **Enterprise IAM/PAM & Policy-as-Code audit component.**
