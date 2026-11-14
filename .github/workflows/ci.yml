@@ -1,0 +1,43 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  sbcl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Install SBCL
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq sbcl curl
+          sbcl --version
+      - name: Run Common Lisp tests
+        run: ./scripts/test.sh
+      - name: Build binary
+        run: XDG_DATA_DIRS="/usr/local/share:/usr/share" sbcl --no-userinit --script lisp/build.lisp
+      - name: Smoke mock audit JSON
+        run: |
+          set -euo pipefail
+          ./bin/pam-audit --help
+          set +e; ./bin/pam-audit audit --mock --format json > /tmp/pam-audit.json; rc=$?; set -e; if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then exit 1; fi
+          grep -q orphaned-privileged /tmp/pam-audit.json
+          grep -q stale-token /tmp/pam-audit.json
+      - name: Smoke EDN and sexp
+        run: |
+          set -euo pipefail
+          set +e; ./bin/pam-audit audit --mock --format edn > /tmp/pam-audit.edn; rc=$?; set -e; if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then exit 1; fi
+          grep -q ':stale-token' /tmp/pam-audit.edn
+          set +e; ./bin/pam-audit audit --mock --format sexp > /tmp/pam-audit.sexp; rc=$?; set -e; if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then exit 1; fi
+          test -s /tmp/pam-audit.sexp
+      - name: Determinism check
+        run: |
+          set -euo pipefail
+          set +e; ./bin/pam-audit audit --mock --format json > /tmp/a.json; rc=$?; set -e; if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then exit 1; fi
+          set +e; ./bin/pam-audit audit --mock --format json > /tmp/b.json; rc=$?; set -e; if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then exit 1; fi
+          cmp /tmp/a.json /tmp/b.json
+      - name: Residue check
+        run: ./scripts/verify.sh
